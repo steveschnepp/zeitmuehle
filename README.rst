@@ -1,4 +1,4 @@
-Zeitmuehle
+Zeitmühle
 ----------
 
 Small, but very efficient backup tool.
