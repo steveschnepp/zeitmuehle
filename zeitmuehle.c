@@ -46,39 +46,42 @@ int main(int argc, char **argv)
 	int max_depth = 10;
 	flags |= FTW_PHYS;
 	nftw(src_filename, copy_if_needed, max_depth, flags);
-
-	/*
-	int src = open(src_filename, O_RDONLY, 0);
-	int dst = open(dst_filename, O_WRONLY | O_CREAT, 0644);
-
-	copy(src, dst);
-
-	close(src);
-	close(dst);
-	*/
 }
 
 #define BUFFER_SIZE (1 * 1024  * 1024)
 static char buffer[BUFFER_SIZE];
+#define PATH_MAX        4096
+static char dst_fpath[PATH_MAX];
 
-void copy(int src, int dst) {
+void mkdir_dst(const char *fpath, const struct stat *sb)
+{
+	printf("mkdir_dst(%s, %s/%s)\n", fpath, dst_filename, fpath);
+	sprintf(dst_fpath, "%s/%s", dst_filename, fpath);
+	mkdir(dst_fpath, sb->st_mode);
+}
+
+void copy_file(const char *fpath, const struct stat *sb)
+{
+	printf("copy_file(%s, %s/%s)\n", fpath, dst_filename, fpath);
+	sprintf(dst_fpath, "%s/%s", dst_filename, fpath);
+
+	int src = open(fpath, O_RDONLY, 0);
+	int dst = open(dst_fpath, O_WRONLY | O_CREAT, 0644);
 
 	size_t size;
 	while ((size = read(src, buffer, BUFFER_SIZE)) > 0) {
 		// assume one can write the whole buffer at once
 		write(dst, buffer, size);
 	}
+
+	close(src);
+	close(dst);
 }
 
-void mkdir_dst(const char *fpath, const struct stat *sb)
-{
-	printf("mkdir_dst(%s, %s/%s)\n", fpath, dst_filename, fpath);
-}
-void copy_file(const char *fpath, const struct stat *sb)
-{
-	printf("copy_file(%s, %s/%s)\n", fpath, dst_filename, fpath);
-}
 void copy_link(const char *fpath, const struct stat *sb)
 {
 	printf("copy_link(%s, %s/%s)\n", fpath, dst_filename, fpath);
+	sprintf(dst_fpath, "%s/%s", dst_filename, fpath);
+
+	symlink(dst_fpath, fpath);
 }
