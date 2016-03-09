@@ -5,6 +5,8 @@
 #include <fcntl.h>
 #include <ftw.h>
 #include <sys/time.h>
+#include <time.h>
+#include <string.h>
 
 void mkdir_dst(const char *fpath, const struct stat *sb);
 void copy_file(const char *fpath, const struct stat *sb);
@@ -37,14 +39,20 @@ static int copy_if_needed(const char *fpath, const struct stat *sb, int tflag, s
 }
 
 
-char* src_filename;
-char* dst_filename;
-
 static int v = 2;
 static int q = 0;
 #define INFO(x)  if(v > 0) { x ; };
 #define DEBUG(x) if(v > 1) { x ; };
 #define WARN(x)  if(q == 0) { x ; };
+
+#define PATH_MAX        4096
+char dst_fpath[PATH_MAX];
+
+char src_filename[PATH_MAX];
+char dst_filename[PATH_MAX];
+
+char current_timestamp[PATH_MAX];
+char previous_timestamp[PATH_MAX];
 
 int main(int argc, char **argv)
 {
@@ -53,8 +61,22 @@ int main(int argc, char **argv)
 		return 2;
 	}
 
-	src_filename = argv[1];
-	dst_filename = argv[2];
+	strncpy(src_filename, argv[1], sizeof(src_filename));
+	strncpy(dst_filename, argv[2], sizeof(dst_filename));
+
+	// Appending the timestamp
+	{
+		time_t now = time(NULL);
+		char datestring[256];
+		strftime (datestring, sizeof(datestring), "%FT%T", localtime(&now));
+		strcat(dst_filename, "/");
+		strcat(dst_filename, datestring);
+	}
+
+	// mkpath dst_filename
+	{
+		mkdir(dst_filename, 0644);
+	}
 
 	int flags = 0;
 	int max_depth = 10;
@@ -67,8 +89,6 @@ int main(int argc, char **argv)
 #define BUFFER_SIZE (1 * 1024  * 1024)
 static char buffer[BUFFER_SIZE];
 
-#define PATH_MAX        4096
-static char dst_fpath[PATH_MAX];
 
 void mkdir_dst(const char *fpath, const struct stat *sb)
 {
