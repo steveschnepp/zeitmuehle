@@ -40,8 +40,8 @@ static int copy_if_needed(const char *fpath, const struct stat *sb, int tflag, s
 }
 
 
-char* src_filename = ".";
-char* dst_filename = "/tmp";
+char* src_filename;
+char* dst_filename;
 
 static int v = 2;
 static int q = 0;
@@ -51,13 +51,17 @@ static int q = 0;
 
 int main(int argc, char **argv)
 {
-	if (argc > 1) src_filename = argv[1];
-	if (argc > 2) dst_filename = argv[2];
+	if (argc < 2) {
+		fprintf(stderr, "usage: %s <src> <dst>\n", argv[0]);
+		return 2;
+	}
 
 	int flags = 0;
 	int max_depth = 10;
 	flags |= FTW_PHYS;
 	nftw(src_filename, copy_if_needed, max_depth, flags);
+
+	return 0;
 }
 
 #define BUFFER_SIZE (1 * 1024  * 1024)
