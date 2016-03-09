@@ -1,7 +1,4 @@
-#ifdef __linux_
-#define _XOPEN_SOURCE 500
-#endif
-
+#define _XOPEN_SOURCE 600
 
 #include <stdio.h>
 #include <unistd.h>
