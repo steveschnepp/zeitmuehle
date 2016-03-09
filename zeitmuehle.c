@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <ftw.h>
+#include <sys/time.h>
 
 void mkdir_dst(const char *fpath, const struct stat *sb);
 void copy_file(const char *fpath, const struct stat *sb);
@@ -42,6 +43,12 @@ static int copy_if_needed(const char *fpath, const struct stat *sb, int tflag, s
 char* src_filename = ".";
 char* dst_filename = "/tmp";
 
+static int v = 2;
+static int q = 0;
+#define INFO(x)  if(v > 0) { x ; };
+#define DEBUG(x) if(v > 1) { x ; };
+#define WARN(x)  if(q == 0) { x ; };
+
 int main(int argc, char **argv)
 {
 	if (argc > 1) src_filename = argv[1];
@@ -55,19 +62,28 @@ int main(int argc, char **argv)
 
 #define BUFFER_SIZE (1 * 1024  * 1024)
 static char buffer[BUFFER_SIZE];
+
 #define PATH_MAX        4096
 static char dst_fpath[PATH_MAX];
 
 void mkdir_dst(const char *fpath, const struct stat *sb)
 {
-	printf("mkdir_dst(%s, %s/%s)\n", fpath, dst_filename, fpath);
+	INFO(printf("mkdir_dst(%s, %s/%s)\n", fpath, dst_filename, fpath));
 	sprintf(dst_fpath, "%s/%s", dst_filename, fpath);
 	mkdir(dst_fpath, sb->st_mode);
 }
 
+/** Only copy regular file
+ * --> Any character special file, block special file, FIFO or SOCKET is ignored.
+ */
 void copy_file(const char *fpath, const struct stat *sb)
 {
-	printf("copy_file(%s, %s/%s)\n", fpath, dst_filename, fpath);
+	INFO(printf("copy_file(%s, %s/%s)\n", fpath, dst_filename, fpath));
+	if (! S_ISREG(sb->st_mode)) {
+		WARN(printf("%s is ignored as it's not a regular file\n", fpath));
+		return;
+	}
+
 	sprintf(dst_fpath, "%s/%s", dst_filename, fpath);
 
 	int src = open(fpath, O_RDONLY, 0);
@@ -85,8 +101,11 @@ void copy_file(const char *fpath, const struct stat *sb)
 
 void copy_link(const char *fpath, const struct stat *sb)
 {
-	printf("copy_link(%s, %s/%s)\n", fpath, dst_filename, fpath);
+	INFO(printf("copy_link(%s, %s/%s)\n", fpath, dst_filename, fpath));
 	sprintf(dst_fpath, "%s/%s", dst_filename, fpath);
 
-	symlink(dst_fpath, fpath);
+	ssize_t buf_size = readlink(fpath, buffer, BUFFER_SIZE-1);
+	buffer[buf_size] = 0; // Null termination, as readlink won't do it
+
+	symlink(buffer, dst_fpath);
 }
