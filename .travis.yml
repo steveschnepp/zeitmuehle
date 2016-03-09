@@ -1,0 +1,11 @@
+language: c
+compiler:
+  - gcc
+  - clang
+
+install:
+
+script: make
+
+notifications:
+  irc: "irc.oftc.net#zeitmuehle"
