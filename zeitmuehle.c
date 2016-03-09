@@ -53,6 +53,9 @@ int main(int argc, char **argv)
 		return 2;
 	}
 
+	src_filename = argv[1];
+	dst_filename = argv[2];
+
 	int flags = 0;
 	int max_depth = 10;
 	flags |= FTW_PHYS;
