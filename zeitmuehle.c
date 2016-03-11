@@ -113,10 +113,22 @@ void copy_file(const char *fpath, const struct stat *sb)
 	int src = open(fpath, O_RDONLY, 0);
 	int dst = open(dst_fpath, O_WRONLY | O_CREAT, 0644);
 
+#if 0
+	// Add some hints for the OS
+	off_t START_FILE = 0;
+	off_t ALL_FILE = 0;
+	posix_fadvise(src, START_FILE, ALL_FILE, POSIX_FADV_SEQUENTIAL | POSIX_FADV_WILLNEED | POSIX_FADV_NOREUSE);
+#endif
+
 	size_t size;
 	while ((size = read(src, buffer, BUFFER_SIZE)) > 0) {
 		// assume one can write the whole buffer at once
 		write(dst, buffer, size);
+
+#if 0
+		// We don't need to keep the buffers on dst
+		posix_fadvise(dst, START_FILE, ALL_FILE, POSIX_FADV_DONTNEED);
+#endif
 	}
 
 	close(src);
