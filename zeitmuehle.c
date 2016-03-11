@@ -109,7 +109,8 @@ int copy_file(const char *fpath, const struct stat *sb)
 	INFO(printf("copy_file(%s, %s/%s)\n", fpath, dst_filename, fpath));
 	if (! S_ISREG(sb->st_mode)) {
 		WARN(printf("%s is ignored as it's not a regular file\n", fpath));
-		return;
+		// 0 == continue
+		return 0;
 	}
 
 	sprintf(dst_fpath, "%s/%s", dst_filename, fpath);
