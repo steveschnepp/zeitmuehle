@@ -5,8 +5,11 @@
 #include <fcntl.h>
 #include <ftw.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <time.h>
+#include <utime.h>
 #include <string.h>
+#include <glob.h>
 
 int mkdir_dst(const char *fpath, const struct stat *sb);
 int copy_file(const char *fpath, const struct stat *sb);
@@ -73,6 +76,36 @@ int main(int argc, char **argv)
 		strcat(dst_filename, datestring);
 	}
 
+	// Search the last timestamp
+	{
+		strncpy(previous_timestamp, argv[2], sizeof(previous_timestamp));
+
+		// using "\?\?" in order to avoid trigraphs
+		strcat(previous_timestamp, "/*-*-*T*:*:*"); // 2016-03-10T19:04:47
+		INFO(printf("previous_timestamp:%s\n", previous_timestamp));
+
+		glob_t globbuf;
+		globbuf.gl_offs = 1;
+		int ret = glob(previous_timestamp, GLOB_DOOFFS, NULL, &globbuf);
+		if (ret == 0 ) {
+			// Pick the last path
+			size_t last_path_idx = globbuf.gl_pathc - 1;
+			char* last_path = globbuf.gl_pathv[last_path_idx];
+			INFO(printf("last_path_idx:%d, last_path:%s\n", last_path_idx, last_path));
+			if (last_path != NULL) {
+				strncpy(previous_timestamp, last_path, sizeof(previous_timestamp));
+			} else {
+				previous_timestamp[0] = 0;
+			}
+
+			INFO(printf("previous_timestamp:%s\n", previous_timestamp));
+		} else {
+			previous_timestamp[0] = 0;
+		}
+
+		globfree(&globbuf);
+	}
+
 	// mkpath dst_filename
 	{
 		mkdir(dst_filename, 0755);
@@ -115,6 +148,29 @@ int copy_file(const char *fpath, const struct stat *sb)
 
 	sprintf(dst_fpath, "%s/%s", dst_filename, fpath);
 
+	// Check if previous file is same than src
+	if (previous_timestamp[0]) {
+		char dst_fpath_previous[PATH_MAX];
+		sprintf(dst_fpath_previous, "%s/%s", previous_timestamp, fpath);
+
+		struct stat sb_previous;
+		stat(dst_fpath_previous, &sb_previous);
+
+		int same_uid = (sb_previous.st_uid == sb->st_uid);
+		int same_gid = (sb_previous.st_gid == sb->st_gid);
+		int same_size = (sb_previous.st_size == sb->st_size);
+		int same_mode = (sb_previous.st_mode == sb->st_mode);
+		int same_mtime = (sb_previous.st_mtime == sb->st_mtime);
+
+		INFO(printf("same_uid:%d,same_gid:%d,same_size:%d,same_mode:%d,same_mtime:%d\n", same_uid, same_gid, same_size, same_mode, same_mtime));
+		if (same_uid && same_gid && same_size && same_mode && same_mtime) {
+			// The files are the same, hardlink instead of copy
+			INFO(printf("link(%s, %s)\n", dst_fpath_previous, dst_filename));
+			link(dst_fpath_previous, dst_fpath);
+			return 0;
+		}
+	}
+
 	int src = open(fpath, O_RDONLY, 0);
 	int dst = open(dst_fpath, O_WRONLY | O_CREAT, 0644);
 
@@ -148,6 +204,12 @@ int copy_file(const char *fpath, const struct stat *sb)
 
 	close(src);
 	close(dst);
+
+	// same time
+	struct utimbuf tb;
+	tb.actime = sb->st_atime;
+	tb.modtime = sb->st_mtime;
+	utime(dst_fpath, &tb);
 
 	return 0;
 }
