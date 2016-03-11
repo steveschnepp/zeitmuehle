@@ -118,7 +118,7 @@ int copy_file(const char *fpath, const struct stat *sb)
 	int src = open(fpath, O_RDONLY, 0);
 	int dst = open(dst_fpath, O_WRONLY | O_CREAT, 0644);
 
-	if (dst < 0) return(1);
+	if (dst < 0) return 1;
 
 #if 0
 	// Add some hints for the OS
