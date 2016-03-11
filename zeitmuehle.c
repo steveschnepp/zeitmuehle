@@ -131,6 +131,14 @@ void copy_file(const char *fpath, const struct stat *sb)
 #endif
 	}
 
+	// Copy the metadata
+	{
+		// same uid/gid
+		fchown(dst, sb->st_uid, sb->st_gid);
+		// same file perms
+		fchmod(dst, sb->st_mode);
+	}
+
 	close(src);
 	close(dst);
 }
