@@ -8,22 +8,22 @@
 #include <time.h>
 #include <string.h>
 
-void mkdir_dst(const char *fpath, const struct stat *sb);
-void copy_file(const char *fpath, const struct stat *sb);
-void copy_link(const char *fpath, const struct stat *sb);
+int mkdir_dst(const char *fpath, const struct stat *sb);
+int copy_file(const char *fpath, const struct stat *sb);
+int copy_link(const char *fpath, const struct stat *sb);
 
 static int copy_if_needed(const char *fpath, const struct stat *sb, int tflag, struct FTW *ftwbuf) {
 	switch (tflag) {
 		case FTW_D:
-			mkdir_dst(fpath, sb);
+			return mkdir_dst(fpath, sb);
 			break;
 
 		case FTW_F:
-			copy_file(fpath, sb);
+			return copy_file(fpath, sb);
 			break;
 
 		case FTW_SL:
-			copy_link(fpath, sb);
+			return copy_link(fpath, sb);
 			break;
 
 		case FTW_DNR:
@@ -90,17 +90,21 @@ int main(int argc, char **argv)
 static char buffer[BUFFER_SIZE];
 
 
-void mkdir_dst(const char *fpath, const struct stat *sb)
+int mkdir_dst(const char *fpath, const struct stat *sb)
 {
 	INFO(printf("mkdir_dst(%s, %s/%s)\n", fpath, dst_filename, fpath));
+
+	// Test if we should create current dir "."
+	if (strcmp(fpath, ".") == 0) return 0;
+
 	sprintf(dst_fpath, "%s/%s", dst_filename, fpath);
-	mkdir(dst_fpath, sb->st_mode);
+	return mkdir(dst_fpath, sb->st_mode);
 }
 
 /** Only copy regular file
  * --> Any character special file, block special file, FIFO or SOCKET is ignored.
  */
-void copy_file(const char *fpath, const struct stat *sb)
+int copy_file(const char *fpath, const struct stat *sb)
 {
 	INFO(printf("copy_file(%s, %s/%s)\n", fpath, dst_filename, fpath));
 	if (! S_ISREG(sb->st_mode)) {
@@ -112,6 +116,8 @@ void copy_file(const char *fpath, const struct stat *sb)
 
 	int src = open(fpath, O_RDONLY, 0);
 	int dst = open(dst_fpath, O_WRONLY | O_CREAT, 0644);
+
+	if (dst < 0) return(1);
 
 #if 0
 	// Add some hints for the OS
@@ -141,9 +147,11 @@ void copy_file(const char *fpath, const struct stat *sb)
 
 	close(src);
 	close(dst);
+
+	return 0;
 }
 
-void copy_link(const char *fpath, const struct stat *sb)
+int copy_link(const char *fpath, const struct stat *sb)
 {
 	INFO(printf("copy_link(%s, %s/%s)\n", fpath, dst_filename, fpath));
 	sprintf(dst_fpath, "%s/%s", dst_filename, fpath);
@@ -151,5 +159,5 @@ void copy_link(const char *fpath, const struct stat *sb)
 	ssize_t buf_size = readlink(fpath, buffer, BUFFER_SIZE-1);
 	buffer[buf_size] = 0; // Null termination, as readlink won't do it
 
-	symlink(buffer, dst_fpath);
+	return symlink(buffer, dst_fpath);
 }
