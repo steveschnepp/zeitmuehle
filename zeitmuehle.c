@@ -75,7 +75,7 @@ int main(int argc, char **argv)
 
 	// mkpath dst_filename
 	{
-		mkdir(dst_filename, 0644);
+		mkdir(dst_filename, 0755);
 	}
 
 	int flags = 0;
