@@ -9,7 +9,6 @@
 #include <time.h>
 #include <utime.h>
 #include <string.h>
-#include <glob.h>
 
 int mkdir_dst(const char *fpath, const struct stat *sb);
 int copy_file(const char *fpath, const struct stat *sb);
@@ -80,34 +79,16 @@ int main(int argc, char **argv)
 		strcat(current_timestamp, ".inprogress");
 	}
 
-	// Search the last timestamp
+	// The last fully copied timestamp is the "lastest" symlink. Use that if exists
 	{
 		strncpy(previous_timestamp, argv[2], sizeof(previous_timestamp));
+		strcat(previous_timestamp, "/latest");
 
-		// using "\?\?" in order to avoid trigraphs
-		strcat(previous_timestamp, "/*-*-*T*:*:*"); // 2016-03-10T19:04:47
-		INFO(printf("previous_timestamp:%s\n", previous_timestamp));
-
-		glob_t globbuf;
-		globbuf.gl_offs = 1;
-		int ret = glob(previous_timestamp, GLOB_DOOFFS, NULL, &globbuf);
-		if (ret == 0 ) {
-			// Pick the last path
-			size_t last_path_idx = globbuf.gl_pathc - 1;
-			char* last_path = globbuf.gl_pathv[last_path_idx];
-			INFO(printf("last_path_idx:%d, last_path:%s\n", last_path_idx, last_path));
-			if (last_path != NULL) {
-				strncpy(previous_timestamp, last_path, sizeof(previous_timestamp));
-			} else {
-				previous_timestamp[0] = 0;
-			}
-
-			INFO(printf("previous_timestamp:%s\n", previous_timestamp));
-		} else {
+		struct stat sb_previous;
+		if (stat(previous_timestamp, &sb_previous) != 0) {
+			// Nullify the timestamp if no stat
 			previous_timestamp[0] = 0;
 		}
-
-		globfree(&globbuf);
 	}
 
 	// mkpath dst_filename
