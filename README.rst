@@ -13,3 +13,8 @@ master : |build-master|
 
 .. |build-master| image:: https://api.travis-ci.org/steveschnepp/zeitmuehle.svg?branch=master
    :target: https://travis-ci.org/steveschnepp/zeitmuehle
+
+License
+=======
+
+This software is licensed under the MIT license.
