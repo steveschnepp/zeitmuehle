@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 	char datestring[256];
 	{
 		time_t now = time(NULL);
-		strftime (datestring, sizeof(datestring), "%FT%T", localtime(&now));
+		strftime (datestring, sizeof(datestring), "%Y-%m-%d-%H%M%S", localtime(&now));
 		strcat(dst_filename, "/");
 		strcat(dst_filename, datestring);
 
@@ -86,10 +86,10 @@ int main(int argc, char **argv)
 		strcat(current_timestamp, ".inprogress");
 	}
 
-	// The last fully copied timestamp is the "lastest" symlink. Use that if exists
+	// The last fully copied timestamp is the "Latest" symlink. Use that if exists
 	{
 		strncpy(previous_timestamp, argv[2], sizeof(previous_timestamp));
-		strcat(previous_timestamp, "/latest");
+		strcat(previous_timestamp, "/Latest");
 
 		struct stat sb_previous;
 		if (stat(previous_timestamp, &sb_previous) != 0) {
@@ -112,9 +112,9 @@ int main(int argc, char **argv)
 		// Everything was successful, rename the working dir
 		rename(current_timestamp, dst_filename);
 
-		// And update the "lastest" symlink
+		// And update the "Latest" symlink
 		strcpy(current_timestamp, argv[2]);
-		strcat(current_timestamp, "/latest");
+		strcat(current_timestamp, "/Latest");
 
 		unlink(current_timestamp);
 		symlink(datestring, current_timestamp);
