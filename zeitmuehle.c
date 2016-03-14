@@ -68,12 +68,16 @@ int main(int argc, char **argv)
 	strncpy(dst_filename, argv[2], sizeof(dst_filename));
 
 	// Appending the timestamp
+	char datestring[256];
 	{
 		time_t now = time(NULL);
-		char datestring[256];
 		strftime (datestring, sizeof(datestring), "%FT%T", localtime(&now));
 		strcat(dst_filename, "/");
 		strcat(dst_filename, datestring);
+
+		// Create the temp dir
+		strcpy(current_timestamp, dst_filename);
+		strcat(current_timestamp, ".inprogress");
 	}
 
 	// Search the last timestamp
@@ -108,13 +112,25 @@ int main(int argc, char **argv)
 
 	// mkpath dst_filename
 	{
-		mkdir(dst_filename, 0755);
+		mkdir(current_timestamp, 0755);
 	}
 
 	int flags = 0;
 	int max_depth = 10;
 	flags |= FTW_PHYS;
-	nftw(src_filename, copy_if_needed, max_depth, flags);
+	int ret = nftw(src_filename, copy_if_needed, max_depth, flags);
+
+	if (! ret) {
+		// Everything was successful, rename the working dir
+		rename(current_timestamp, dst_filename);
+
+		// And update the "lastest" symlink
+		strcpy(current_timestamp, argv[2]);
+		strcat(current_timestamp, "/latest");
+
+		unlink(current_timestamp);
+		symlink(datestring, current_timestamp);
+	}
 
 	return 0;
 }
@@ -125,12 +141,12 @@ static char buffer[BUFFER_SIZE];
 
 int mkdir_dst(const char *fpath, const struct stat *sb)
 {
-	INFO(printf("mkdir_dst(%s, %s/%s)\n", fpath, dst_filename, fpath));
+	INFO(printf("mkdir_dst(%s, %s/%s)\n", fpath, current_timestamp, fpath));
 
 	// Test if we should create current dir "."
 	if (strcmp(fpath, ".") == 0) return 0;
 
-	sprintf(dst_fpath, "%s/%s", dst_filename, fpath);
+	sprintf(dst_fpath, "%s/%s", current_timestamp, fpath);
 	return mkdir(dst_fpath, sb->st_mode);
 }
 
@@ -139,14 +155,14 @@ int mkdir_dst(const char *fpath, const struct stat *sb)
  */
 int copy_file(const char *fpath, const struct stat *sb)
 {
-	INFO(printf("copy_file(%s, %s/%s)\n", fpath, dst_filename, fpath));
+	INFO(printf("copy_file(%s, %s/%s)\n", fpath, current_timestamp, fpath));
 	if (! S_ISREG(sb->st_mode)) {
 		WARN(printf("%s is ignored as it's not a regular file\n", fpath));
 		// 0 == continue
 		return 0;
 	}
 
-	sprintf(dst_fpath, "%s/%s", dst_filename, fpath);
+	sprintf(dst_fpath, "%s/%s", current_timestamp, fpath);
 
 	// Check if previous file is same than src
 	if (previous_timestamp[0]) {
@@ -165,7 +181,7 @@ int copy_file(const char *fpath, const struct stat *sb)
 		INFO(printf("same_uid:%d,same_gid:%d,same_size:%d,same_mode:%d,same_mtime:%d\n", same_uid, same_gid, same_size, same_mode, same_mtime));
 		if (same_uid && same_gid && same_size && same_mode && same_mtime) {
 			// The files are the same, hardlink instead of copy
-			INFO(printf("link(%s, %s)\n", dst_fpath_previous, dst_filename));
+			INFO(printf("link(%s, %s)\n", dst_fpath_previous, current_timestamp));
 			link(dst_fpath_previous, dst_fpath);
 			return 0;
 		}
@@ -216,8 +232,8 @@ int copy_file(const char *fpath, const struct stat *sb)
 
 int copy_link(const char *fpath, const struct stat *sb)
 {
-	INFO(printf("copy_link(%s, %s/%s)\n", fpath, dst_filename, fpath));
-	sprintf(dst_fpath, "%s/%s", dst_filename, fpath);
+	INFO(printf("copy_link(%s, %s/%s)\n", fpath, current_timestamp, fpath));
+	sprintf(dst_fpath, "%s/%s", current_timestamp, fpath);
 
 	ssize_t buf_size = readlink(fpath, buffer, BUFFER_SIZE-1);
 	buffer[buf_size] = 0; // Null termination, as readlink won't do it
