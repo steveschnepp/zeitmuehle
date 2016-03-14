@@ -41,8 +41,15 @@ static int copy_if_needed(const char *fpath, const struct stat *sb, int tflag, s
 }
 
 
-static int v = 2;
-static int q = 0;
+#ifndef LOG_LEVEL
+#define LOG_LEVEL 2
+#endif
+#ifndef QUIET_LEVEL
+#define QUIET_LEVEL 0
+#endif
+
+static int v = LOG_LEVEL;
+static int q = QUIET_LEVEL;
 #define INFO(x)  if(v > 0) { x ; };
 #define DEBUG(x) if(v > 1) { x ; };
 #define WARN(x)  if(q == 0) { x ; };
