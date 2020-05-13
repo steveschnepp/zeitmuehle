@@ -180,21 +180,32 @@ int copy_file(const char *fpath, const struct stat *sb)
 
 	if (dst < 0) return 1;
 
-#if 0
+#ifdef HAVE_POSIX_FADVISE
 	// Add some hints for the OS
-	off_t START_FILE = 0;
-	off_t ALL_FILE = 0;
-	posix_fadvise(src, START_FILE, ALL_FILE, POSIX_FADV_SEQUENTIAL | POSIX_FADV_WILLNEED | POSIX_FADV_NOREUSE);
+	off_t window_start = 0;
+	posix_fadvise(src, window_start, window_start + BUFFER_SIZE, POSIX_FADV_SEQUENTIAL | POSIX_FADV_WILLNEED);
 #endif
 
 	size_t size;
 	while ((size = read(src, buffer, BUFFER_SIZE)) > 0) {
+#ifdef HAVE_POSIX_FADVISE
+		// We don't need to keep the buffers on src
+		posix_fadvise(src, window_start, window_start + size, POSIX_FADV_DONTNEED);
+
+		// Hint the kernel that we'll soon need the next window
+		off_t window_end = window_start + size;
+		posix_fadvise(src, window_end, window_end + BUFFER_SIZE, POSIX_FADV_SEQUENTIAL | POSIX_FADV_WILLNEED);
+#endif
+
 		// assume one can write the whole buffer at once
 		write(dst, buffer, size);
+#ifdef HAVE_POSIX_FADVISE
 
-#if 0
 		// We don't need to keep the buffers on dst
-		posix_fadvise(dst, START_FILE, ALL_FILE, POSIX_FADV_DONTNEED);
+		posix_fadvise(dst, window_start, window_end, POSIX_FADV_DONTNEED);
+
+		// move the window
+		window_start = window_end;
 #endif
 	}
 
