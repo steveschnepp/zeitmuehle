@@ -34,3 +34,9 @@ script: make
 
 notifications:
   irc: "irc.oftc.net#zeitmuehle"
+
+# safelist
+branches:
+  only:
+  - master
+  - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
