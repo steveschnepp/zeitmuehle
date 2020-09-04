@@ -28,6 +28,9 @@ matrix:
       compiler: musl-gcc
       env:
         - LDFLAGS=-static
+    - arch: ppc64le
+    - arch: arm64
+    - arch: s390x
 addons:
   apt:
     packages:
