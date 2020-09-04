@@ -24,17 +24,21 @@ matrix:
       compiler: musl-gcc
       env:
         - LDFLAGS=
+      addons:
+        apt:
+          packages:
+            - musl-tools
     - os: linux
       compiler: musl-gcc
       env:
         - LDFLAGS=-static
+      addons:
+        apt:
+          packages:
+            - musl-tools
     - arch: ppc64le
     - arch: arm64
     - arch: s390x
-addons:
-  apt:
-    packages:
-      - musl-tools
 
 install:
 
