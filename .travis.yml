@@ -1,7 +1,37 @@
 language: c
-compiler:
-  - gcc
-  - clang
+
+matrix:
+  include:
+    - os: osx
+      compiler: clang
+    - os: linux
+      compiler: gcc
+      env:
+        - LDFLAGS=
+    - os: linux
+      compiler: gcc
+      env:
+        - LDFLAGS=-static
+    - os: linux
+      compiler: clang
+      env:
+        - LDFLAGS=
+    - os: linux
+      compiler: clang
+      env:
+        - LDFLAGS=-static
+    - os: linux
+      compiler: musl-gcc
+      env:
+        - LDFLAGS=
+    - os: linux
+      compiler: musl-gcc
+      env:
+        - LDFLAGS=-static
+addons:
+  apt:
+    packages:
+      - musl-tools
 
 install:
 
