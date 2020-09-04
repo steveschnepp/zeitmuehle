@@ -1,7 +1,32 @@
 language: c
-compiler:
-  - gcc
-  - clang
+
+matrix:
+  include:
+    - os: osx
+      compiler: clang
+    - os: linux
+      compiler: gcc
+    - os: linux
+      compiler: clang
+    - os: linux
+      compiler: musl-gcc
+      env:
+        - LDFLAGS=
+      addons:
+        apt:
+          packages:
+            - musl-tools
+    - os: linux
+      compiler: musl-gcc
+      env:
+        - LDFLAGS=-static
+      addons:
+        apt:
+          packages:
+            - musl-tools
+    - arch: ppc64le
+    - arch: arm64
+    - arch: s390x
 
 install:
 
@@ -9,3 +34,9 @@ script: make
 
 notifications:
   irc: "irc.oftc.net#zeitmuehle"
+
+# safelist
+branches:
+  only:
+  - master
+  - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
